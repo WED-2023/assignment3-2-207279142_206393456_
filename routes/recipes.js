@@ -3,7 +3,22 @@ var router = express.Router();
 const recipes_utils = require("./utils/recipes_utils");
 
 router.get("/", (req, res) => res.send("im here"));
+// router.get("/", async (req, res, next) => {
+//   try {
+//     const { query, cuisine, diet, intolerances, limit } = req.query;
 
+//     // Fetch recipes from Spoonacular (מתכון מלא עם IDs)
+//     const results = await recipes_utils.searchRecipes(query, cuisine, diet, intolerances, limit || 5);
+
+//     // Save each result into DB (if not exists)
+//     await Promise.all(results.map(recipe => recipes_utils.saveExternalRecipeToDB(recipe.id)));
+
+//     // Return results to client
+//     res.status(200).send(results);
+//   } catch (error) {
+//     next(error);
+//   }
+// });
 
 
 /**
