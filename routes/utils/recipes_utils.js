@@ -4,38 +4,137 @@ const api_domain = "https://api.spoonacular.com/recipes";
 const api_key = process.env.spoonacular_apiKey;
 
 
-
 /**
- * Get recipes list from spooncular response and extract the relevant recipe data for preview
- * @param {*} recipes_info 
+ * Fetch full recipe information from Spoonacular by ID.
+ * Does not include nutrition data to reduce payload size.
  */
-
-
 async function getRecipeInformation(recipe_id) {
     return await axios.get(`${api_domain}/${recipe_id}/information`, {
-        params: {
-            includeNutrition: false,
-            apiKey: process.env.spooncular_apiKey
-        }
+        params: {includeNutrition: false,apiKey: process.env.spooncular_apiKey}
     });
 }
 
+
+
+/**
+ * Returns full recipe details by ID.
+ * First checks local DB, otherwise fetches from API and saves.
+ */
 async function getRecipeDetails(recipe_id) {
-    let recipe_info = await getRecipeInformation(recipe_id);
-    let { id, title, readyInMinutes, image, aggregateLikes, vegan, vegetarian, glutenFree } = recipe_info.data;
+  // Try to get the recipe from the local DB
+  const result = await DButils.execQuery(`SELECT * FROM recipes WHERE recipe_id = ${recipe_id}`);
+
+  if (result.length > 0) {
+    const recipe = result[0];
+    const ingredients = await DButils.execQuery(`SELECT name, quantity, unit FROM ingredients WHERE recipe_id = ${recipe_id}`);
 
     return {
-        id: id,
-        title: title,
-        readyInMinutes: readyInMinutes,
-        image: image,
-        popularity: aggregateLikes,
-        vegan: vegan,
-        vegetarian: vegetarian,
-        glutenFree: glutenFree,
-        
-    }
+      id: recipe.recipe_id,
+      title: recipe.title,
+      readyInMinutes: recipe.ready_in_minutes,
+      image: recipe.image_url,
+      popularity: recipe.likes,
+      vegan: !!recipe.vegan,
+      vegetarian: !!recipe.vegetarian,
+      glutenFree: !!recipe.gluten_free,
+      servings: recipe.servings,
+      instructions: recipe.instructions?.split(".").filter(s => s.trim()),
+      ingredients: ingredients.map(i => ({
+        name: i.name,
+        quantity: `${i.quantity} ${i.unit}`.trim()
+      }))
+    };
+  }
+
+  // Not found – fetch from API and save
+  const response = await getRecipeInformation(recipe_id);
+  const data = response.data;
+  await saveExternalRecipeToDB(data);
+
+  // Return the formatted recipe (without going back to DB)
+  return {
+    id: data.id,
+    title: data.title,
+    readyInMinutes: data.readyInMinutes,
+    image: data.image,
+    popularity: data.aggregateLikes,
+    vegan: data.vegan,
+    vegetarian: data.vegetarian,
+    glutenFree: data.glutenFree,
+    servings: data.servings,
+    instructions: data.instructions?.split(".").filter(s => s.trim()),
+    ingredients: (data.extendedIngredients || []).map(i => ({
+      name: i.name,
+      quantity: `${i.amount} ${i.unit}`.trim()
+    }))
+  };
 }
+
+
+/**
+ * Returns a short preview of a recipe by ID.
+ * First checks local DB, otherwise fetches from Spoonacular and saves.
+ */
+
+async function getRecipePreview(recipe_id) {
+  const result = await DButils.execQuery(`SELECT * FROM recipes WHERE recipe_id = ${recipe_id}`);
+
+  if (result.length > 0) {
+    const recipe = result[0];
+    return {
+      id: recipe.recipe_id,
+      title: recipe.title,
+      image: recipe.image_url,
+      readyInMinutes: recipe.ready_in_minutes,
+      popularity: recipe.likes,
+      vegetarian: !!recipe.vegetarian,
+      vegan: !!recipe.vegan,
+      glutenFree: !!recipe.gluten_free
+    };
+  }
+
+  // Not in DB – fetch, save, return preview
+  const response = await getRecipeInformation(recipe_id);
+  const data = response.data;
+  await saveExternalRecipeToDB(data);
+
+  return {
+    id: data.id,
+    title: data.title,
+    image: data.image,
+    readyInMinutes: data.readyInMinutes,
+    popularity: data.aggregateLikes,
+    vegetarian: data.vegetarian,
+    vegan: data.vegan,
+    glutenFree: data.glutenFree
+  };
+}
+
+
+/**
+ * Returns an array of previews for multiple recipe IDs.
+ */
+async function getRecipesPreview(recipeIds) {
+  const previews = [];
+
+  for (const id of recipeIds) {
+    try {
+      const preview = await getRecipePreview(id);
+      previews.push(preview);
+    } catch (error) {
+      console.error(`Failed to fetch preview for recipe ${id}:`, error.message);
+    }
+  }
+
+  return previews;
+}
+//   const localRecipesFormatted = localRecipes.map(recipe => ({
+//     ...recipe,
+//     vegetarian: recipe.vegetarian ? "true" : "false",
+//     vegan: recipe.vegan ? "true" : "false",
+//     glutenFree: recipe.glutenFree ? "true" : "false"
+//   }));
+
 
 /**
  * Get random recipes from Spoonacular API
@@ -44,15 +143,9 @@ async function getRecipeDetails(recipe_id) {
  */
 async function getRandomRecipes(count) {
   try {
-    console.log(" Fetching random recipes from:", `${api_domain}/random`);
-    console.log(" Number of recipes to fetch:", count);
-    console.log(" API Key present:", !!process.env.spooncular_apiKey);
 
     const response = await axios.get(`${api_domain}/random`, {
-      params: {
-        number: count,
-        apiKey: process.env.spooncular_apiKey
-      }
+      params: {number: count,apiKey: process.env.spooncular_apiKey}
     });
 
     const recipes = response.data.recipes;
@@ -76,67 +169,52 @@ async function getRandomRecipes(count) {
   }
 }
 
-async function getRecipesPreview(recipeIdArray) {
-  if (!recipeIdArray || recipeIdArray.length === 0) return [];
-  console.log("API Key:", api_key);
-
-  // get all local recipes
-  const idListString = recipeIdArray.join(",");
-  const query =`SELECT recipe_id AS id, title, image_url AS image, ready_in_minutes AS readyInMinutes,likes AS popularity, vegetarian, vegan, gluten_free AS glutenFree
-    FROM recipes WHERE recipe_id IN (${idListString})`;
-
-  const localRecipes = await DButils.execQuery(query);
-  const localIds = localRecipes.map(r => r.id);  
-
-  const localRecipesFormatted = localRecipes.map(recipe => ({
-    ...recipe,
-    vegetarian: recipe.vegetarian ? "true" : "false",
-    vegan: recipe.vegan ? "true" : "false",
-    glutenFree: recipe.glutenFree ? "true" : "false"
-  }));
-
-  // find recipes from Spoonacular
-  const externalIds = recipeIdArray.filter(id => !localIds.includes(id));
 
 
-  // get all recipes from the DB
-  const updatedIds = recipeIdArray.join(",");
-  const updatedQuery = `SELECT recipe_id AS id, title, image_url AS image, ready_in_minutes AS readyInMinutes,
-                        likes AS popularity, vegetarian, vegan, gluten_free AS glutenFree
-                        FROM recipes WHERE recipe_id IN (${updatedIds})`;
+/**
+ * Increases the like count of a recipe.
+ * If recipe not in DB, fetches it, saves, then updates likes.
+ */
+async function likeRecipe(recipe_id) {
+  // Check if the recipe exists locally
+  const result = await DButils.execQuery(`SELECT * FROM recipes WHERE recipe_id = ${recipe_id}`);
 
-  const allRecipes = await DButils.execQuery(updatedQuery);
+  if (result.length === 0) {
+    // Fetch from API and save to DB
+    const response = await getRecipeInformation(recipe_id);
+    await saveExternalRecipeToDB(response.data);
+  }
 
-  return allRecipes.map(recipe => ({
-    ...recipe,
-    vegetarian: recipe.vegetarian ? "true" : "false",
-    vegan: recipe.vegan ? "true" : "false",
-    glutenFree: recipe.glutenFree ? "true" : "false"
-  }));
+  // Increase the like count
+  await DButils.execQuery(`
+    UPDATE recipes
+    SET likes = likes + 1
+    WHERE recipe_id = ${recipe_id}`);
+
 }
 
-async function saveExternalRecipeToDB(recipe_id) {
-  // check if the recipe already exists
-  const existing = await DButils.execQuery(`
-    SELECT recipe_id FROM recipes WHERE recipe_id = ${recipe_id}
-  `);
-  if (existing.length > 0) return; // already exists
 
-  // fetch from Spoonacular
-  const response = await axios.get(`${api_domain}/${recipe_id}/information`, {
-    params: {
-      apiKey: process.env.spoonacular_apiKey
-    }
-  });
 
-  const data = response.data;
 
-  // insert into recipes table
-  const insertRecipeQuery = `
-    INSERT INTO recipes (
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Save a recipe object from Spoonacular into the local DB.
+ * Used after fetching from the API.
+ */
+async function saveExternalRecipeToDB(data) {
+  const insertRecipeQuery = `INSERT INTO recipes (
       recipe_id, title, image_url, ready_in_minutes,
-      vegetarian, vegan, gluten_free, likes, instructions, servings, user_id
-    ) VALUES (
+      vegetarian, vegan, gluten_free, likes, instructions, servings, user_id) VALUES (
       ${data.id}, '${data.title.replace(/'/g, "''")}', '${data.image}',
       ${data.readyInMinutes || 0}, ${data.vegetarian ? 1 : 0}, ${data.vegan ? 1 : 0}, ${data.glutenFree ? 1 : 0},
       ${data.aggregateLikes || 0}, '${(data.instructions || '').replace(/'/g, "''")}', ${data.servings || 1}, NULL
@@ -144,42 +222,56 @@ async function saveExternalRecipeToDB(recipe_id) {
   `;
   await DButils.execQuery(insertRecipeQuery);
 
-  // insert ingredients
   const ingredients = data.extendedIngredients || [];
   for (const ing of ingredients) {
-    await DButils.execQuery(`
-      INSERT INTO ingredients (recipe_id, name, quantity, unit)
-      VALUES (${data.id}, '${ing.name.replace(/'/g, "''")}', '${ing.amount}', '${ing.unit}')
-    `);
+    await DButils.execQuery(`INSERT INTO ingredients (recipe_id, name, quantity, unit)
+      VALUES (${data.id}, '${ing.name.replace(/'/g, "''")}', '${ing.amount}', '${ing.unit}')`);
   }
 }
 
-// async function searchRecipes(query, cuisine, diet, intolerances, limit) {
-//   const response = await axios.get(`${api_domain}/complexSearch`, {
-//     params: {
-//       apiKey: process.env.spoonacular_apiKey,
-//       query,
-//       cuisine,
-//       diet,
-//       intolerances,
-//       number: limit || 5
-//     }
-//   });
-//   // get full info for each recipe from result
-//   const recipeResults = response.data.results;
-//   const detailed = await Promise.all(
-//     recipeResults.map(r => getRecipeDetails(r.id))
-//   );
+/**
+ * Searches recipes on Spoonacular using a search query and optional filters.
+ * Returns an array of preview objects (short version).
+ */
+async function searchRecipes({ query, limit = 5, cuisine, diet, intolerances }) {
+  try {
+    // Send search request to Spoonacular
+    const response = await axios.get(`${api_domain}/complexSearch`, {
+      params: {
+        query,
+        number: limit,
+        apiKey: process.env.spoonacular_apiKey,
+        cuisine,
+        diet,
+        intolerances
+      }
+    });
 
-//   return detailed;
-// }
+    // Extract recipe IDs from the result
+    const recipeIds = response.data.results.map(r => r.id);
+
+    // Return their previews
+    const previews = await getRecipesPreview(recipeIds);
+    return previews;
+
+  } catch (error) {
+    console.error("Failed to search recipes:", error.message);
+    throw error;
+  }
+}
+
+
+
+
 
 
 exports.getRandomRecipes = getRandomRecipes;
 exports.getRecipeDetails = getRecipeDetails;
 exports.getRecipesPreview = getRecipesPreview;
+exports.getRecipePreview = getRecipePreview;
 exports.saveExternalRecipeToDB = saveExternalRecipeToDB;
-//exports.searchRecipes = searchRecipes;
+exports.likeRecipe = likeRecipe;
+exports.searchRecipes = searchRecipes;
 
 
 
