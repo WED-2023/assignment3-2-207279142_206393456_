@@ -86,6 +86,13 @@ async function getFamilyRecipes(user_id) {
   return previewWithFamily;
 }
     
+
+async function saveSearchQuery(user_id, query) {
+  await DButils.execQuery(`
+    INSERT INTO search_history (user_id, query)
+    VALUES ('${user_id}', '${query.replace(/'/g, "''")}')
+  `);
+}
     
 
 exports.markAsFavorite = markAsFavorite;
@@ -95,4 +102,6 @@ exports.getLastSearches = getLastSearches;
 exports.getLastWatchedRecipes = getLastWatchedRecipes;
 exports.getMyRecipes = getMyRecipes;
 exports.getFamilyRecipes = getFamilyRecipes;
+exports.saveSearchQuery = saveSearchQuery;
+
 

@@ -1,6 +1,7 @@
 var express = require("express");
 var router = express.Router();
 const recipes_utils = require("./utils/recipes_utils");
+const user_utils = require("./utils/user_utils");
 
 router.get("/", async (req, res, next) => {
   try {
@@ -20,10 +21,8 @@ router.get("/", async (req, res, next) => {
 
     const results = await recipes_utils.searchRecipes(searchParams);
 
-    // Save to search history if logged in
     if (req.session?.user_id) {
-      await DButils.execQuery(`INSERT INTO search_history (user_id, query, search_date)
-        VALUES (${req.session.user_id}, '${query.replace(/'/g, "''")}', NOW())`);
+      await user_utils.saveSearchQuery(req.session.user_id, query);
     }
 
     res.send(results);

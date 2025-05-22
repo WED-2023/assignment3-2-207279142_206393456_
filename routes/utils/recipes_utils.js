@@ -235,7 +235,6 @@ async function saveExternalRecipeToDB(data) {
  */
 async function searchRecipes({ query, limit = 5, cuisine, diet, intolerances }) {
   try {
-    // Send search request to Spoonacular
     const response = await axios.get(`${api_domain}/complexSearch`, {
       params: {
         query,
@@ -247,10 +246,7 @@ async function searchRecipes({ query, limit = 5, cuisine, diet, intolerances }) 
       }
     });
 
-    // Extract recipe IDs from the result
     const recipeIds = response.data.results.map(r => r.id);
-
-    // Return their previews
     const previews = await getRecipesPreview(recipeIds);
     return previews;
 
