@@ -8,7 +8,7 @@ async function markAsFavorite(user_id, recipe_id){
 async function getFavoriteRecipes(user_id){
     const recipes_id = await DButils.execQuery(`select recipe_id from FavoriteRecipes where user_id='${user_id}'`);
     return recipes_id;
-}
+}//to do recipe preview - in user.js
 
 async function markAsViewed(user_id, recipe_id) {
   const existing = await DButils.execQuery(`SELECT * FROM viewed_recipes WHERE user_id='${user_id}' AND recipe_id=${recipe_id}`);
@@ -46,19 +46,23 @@ async function getLastWatchedRecipes(user_id) {
   const previews = await recipe_utils.getRecipesPreview(recipeIds);
   return previews;
 }
-        
+
+
 async function getMyRecipes(user_id) {
-    const rows = await DButils.execQuery(`
-        SELECT recipe_id
-        FROM recipes
-        WHERE user_id = '${user_id}'
-    `);
+  // Select recipes that belong to the user and are not in the family_recipes table
+  const rows = await DButils.execQuery(`
+    SELECT recipe_id
+    FROM recipes
+    WHERE user_id = '${user_id}'
+    AND recipe_id NOT IN (
+      SELECT recipe_id FROM family_recipes
+    )
+  `);
 
-    const ids = rows.map(r => r.recipe_id);
-    const previews = await recipe_utils.getRecipesPreview(ids);
-    return previews;
+  const ids = rows.map(r => r.recipe_id);
+  const previews = await recipe_utils.getRecipesPreview(ids);
+  return previews;
 }
-
 async function getFamilyRecipes(user_id) {
   const rows = await DButils.execQuery(`
     SELECT recipe_id, family_owner, event
