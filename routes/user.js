@@ -29,8 +29,12 @@ router.post('/favorites', async (req, res, next) => {
     const user_id = req.session.user_id;
     const recipe_id = req.body.recipeId;
 
+    if (!recipe_id) {
+      return res.status(400).json({ error: "Missing recipeId" });
+    }
+    
     // Ensure the recipe is saved in the database before marking as favorite
-    await recipe_utils.saveExternalRecipeToDB(recipe_id); 
+    await recipe_utils.saveExternalRecipeToDB(recipe_id);//get back to it 
     // Add to user's favorite recipes
     await user_utils.markAsFavorite(user_id, recipe_id);
     
@@ -72,7 +76,7 @@ router.post("/viewed", async (req, res, next) => {
       return res.status(400).json({ error: "Missing recipeId" });
     }
     //save recipe to DB if from Spoonacular
-    await recipe_utils.saveExternalRecipeToDB(recipe_id);
+    await recipe_utils.saveExternalRecipeToDB(recipe_id);// get back to it 
 
     // Mark this recipe as viewed by the user
     await user_utils.markAsViewed(user_id, recipe_id);
@@ -125,6 +129,8 @@ router.get("/myFamily", async (req, res, next) => {
     next(error);
   }
 });
+
+
 
 
 module.exports = router;
