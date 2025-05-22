@@ -88,41 +88,6 @@ router.put("/:recipeId/like", async (req, res, next) => {
   }
 });
 
-/**
- * Performs a search for recipes based on query and filters
- * Optional filters: cuisine, diet, intolerances, limit
- */
-router.get("/", async (req, res, next) => {
-  try {
-    const { query, limit, cuisine, diet, intolerances } = req.query;
 
-    if (!query) {
-      return res.status(400).send({ message: "Missing search query" });
-    }
-
-    const searchParams = {
-      query,
-      limit: parseInt(limit) || 5,
-      cuisine,
-      diet,
-      intolerances
-    };
-
-    const results = await recipes_utils.searchRecipes(searchParams);
-
-    // Save the search if user is logged in
-    if (req.session?.user_id) {
-      await DButils.execQuery(`
-        INSERT INTO search_history (user_id, query, search_date)
-        VALUES (${req.session.user_id}, '${query.replace(/'/g, "''")}', NOW())
-      `);
-    }
-
-    res.send(results);
-
-  } catch (error) {
-    next(error);
-  }
-});
 
 module.exports = router;

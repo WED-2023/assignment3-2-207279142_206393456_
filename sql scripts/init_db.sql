@@ -7,11 +7,12 @@ DROP TABLE IF EXISTS search_history, family_recipes, viewed_recipes, favorites, 
 CREATE TABLE users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
+    firstname VARCHAR(50) NOT NULL,
+    lastname VARCHAR(50) NOT NULL,
     country VARCHAR(50),
     password VARCHAR(100) NOT NULL,
-    email VARCHAR(100) NOT NULL
+    email VARCHAR(100) NOT NULL,
+    profilePic TEXT
 );
 
 -- Create recipes table
@@ -29,6 +30,8 @@ CREATE TABLE recipes (
     servings INT,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
+
+ALTER TABLE recipes AUTO_INCREMENT = 10000000;
 
 -- Create ingredients table
 CREATE TABLE ingredients (
@@ -117,3 +120,6 @@ INSERT INTO family_recipes (user_id, recipe_id, family_owner, event) VALUES
 INSERT INTO search_history (user_id, query) VALUES
 (1, 'pasta'),
 (2, 'vegan burger');
+
+
+
