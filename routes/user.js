@@ -131,6 +131,57 @@ router.get("/myFamily", async (req, res, next) => {
 });
 
 
+/**
+ * Creates a new recipe (regular or family) for the logged-in user
+ */
+router.post("/recipes", async (req, res, next) => {
+  try {
+    const user_id = req.session.user_id;
 
+    const {
+      title,
+      image,
+      readyInMinutes,
+      vegetarian,
+      vegan,
+      glutenFree,
+      instructions,
+      servings,
+      ingredients,
+      isFamily,
+      family_owner,
+      event
+    } = req.body;
+
+    // Basic validation
+    if (!title || !instructions || !Array.isArray(ingredients)) {
+      return res.status(400).send({ message: "Missing required fields" });
+    }
+
+    const recipeData = {
+      title,
+      image,
+      readyInMinutes,
+      vegetarian,
+      vegan,
+      glutenFree,
+      instructions,
+      servings,
+      ingredients
+    };
+
+    const recipe_id = await user_utils.createUserRecipe(
+      user_id,
+      recipeData,
+      isFamily,
+      family_owner,
+      event
+    );
+
+    res.status(201).send({ message: "Recipe created", recipe_id });
+  } catch (error) {
+    next(error);
+  }
+});
 
 module.exports = router;

@@ -94,6 +94,64 @@ async function saveSearchQuery(user_id, query) {
   `);
 }
     
+/**
+ * Creates a new user recipe (regular or family) and saves to the DB.
+ * @param {number} user_id - ID of the user creating the recipe
+ * @param {object} recipeData - The full recipe object from frontend
+ * @param {boolean} isFamily - Whether it's a family recipe
+ * @param {string} [family_owner] - Name of the family recipe's owner (e.g., "Grandma")
+ * @param {string} [event] - Event associated with family recipe (e.g., "Passover")
+ */
+async function createUserRecipe(user_id, recipeData, isFamily = false, family_owner = null, event = null) {
+  try {
+    // Insert the recipe
+    const insertRecipeQuery = `
+      INSERT INTO recipes (
+        title, image_url, ready_in_minutes,
+        vegetarian, vegan, gluten_free, likes,
+        instructions, servings, user_id
+      ) VALUES (
+        '${recipeData.title.replace(/'/g, "''")}', '${recipeData.image}',
+        ${recipeData.readyInMinutes || 0}, ${recipeData.vegetarian ? 1 : 0}, ${recipeData.vegan ? 1 : 0}, ${recipeData.glutenFree ? 1 : 0}, 0,
+        '${(recipeData.instructions || '').replace(/'/g, "''")}', ${recipeData.servings || 1}, ${user_id}
+      );
+    `;
+    await DButils.execQuery(insertRecipeQuery);
+
+    // Get the new recipe_id
+    const result = await DButils.execQuery(`SELECT LAST_INSERT_ID() as recipe_id`);
+    const recipe_id = result[0].recipe_id;
+
+    // Insert ingredients
+    const ingredients = recipeData.ingredients || [];
+    for (const ing of ingredients) {
+      await DButils.execQuery(`
+        INSERT INTO ingredients (recipe_id, name, quantity, unit)
+        VALUES (
+          ${recipe_id}, 
+          '${ing.name.replace(/'/g, "''")}', 
+          '${ing.quantity}', 
+          '${ing.unit}'
+        );
+      `);
+    }
+
+    // If it's a family recipe – insert to family_recipes
+    if (isFamily && family_owner && event) {
+      await DButils.execQuery(`
+        INSERT INTO family_recipes (user_id, recipe_id, family_owner, event)
+        VALUES (${user_id}, ${recipe_id}, '${family_owner}', '${event}');
+      `);
+    }
+
+    return recipe_id;
+  } catch (error) {
+    console.error("Failed to create user recipe:", error.message);
+    throw error;
+  }
+}
+
+
 
 exports.markAsFavorite = markAsFavorite;
 exports.getFavoriteRecipes = getFavoriteRecipes;
@@ -103,5 +161,6 @@ exports.getLastWatchedRecipes = getLastWatchedRecipes;
 exports.getMyRecipes = getMyRecipes;
 exports.getFamilyRecipes = getFamilyRecipes;
 exports.saveSearchQuery = saveSearchQuery;
+exports.createUserRecipe = createUserRecipe;
 
 

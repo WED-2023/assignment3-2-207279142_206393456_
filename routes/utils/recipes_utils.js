@@ -21,11 +21,10 @@ async function getRecipeInformation(recipe_id) {
  * First checks local DB, otherwise fetches from API and saves.
  */
 async function getRecipeDetails(recipe_id) {
-  // Try to get the recipe from the local DB
-  const result = await DButils.execQuery(`SELECT * FROM recipes WHERE recipe_id = ${recipe_id}`);
+  const exists = await recipeExistsInDB(recipe_id);
 
-  if (result.length > 0) {
-    const recipe = result[0];
+  if (exists) {
+    const recipe = (await DButils.execQuery(`SELECT * FROM recipes WHERE recipe_id = ${recipe_id}`))[0];
     const ingredients = await DButils.execQuery(`SELECT name, quantity, unit FROM ingredients WHERE recipe_id = ${recipe_id}`);
 
     return {
@@ -46,12 +45,10 @@ async function getRecipeDetails(recipe_id) {
     };
   }
 
-  // Not found – fetch from API and save
+  // Fetch + save + return
   const response = await getRecipeInformation(recipe_id);
   const data = response.data;
   await saveExternalRecipeToDB(data);
-
-  // Return the formatted recipe (without going back to DB)
   return {
     id: data.id,
     title: data.title,
@@ -70,17 +67,16 @@ async function getRecipeDetails(recipe_id) {
   };
 }
 
-
 /**
  * Returns a short preview of a recipe by ID.
  * First checks local DB, otherwise fetches from Spoonacular and saves.
  */
 
 async function getRecipePreview(recipe_id) {
-  const result = await DButils.execQuery(`SELECT * FROM recipes WHERE recipe_id = ${recipe_id}`);
+  const exists = await recipeExistsInDB(recipe_id);
 
-  if (result.length > 0) {
-    const recipe = result[0];
+  if (exists) {
+    const recipe = (await DButils.execQuery(`SELECT * FROM recipes WHERE recipe_id = ${recipe_id}`))[0];
     return {
       id: recipe.recipe_id,
       title: recipe.title,
@@ -93,7 +89,6 @@ async function getRecipePreview(recipe_id) {
     };
   }
 
-  // Not in DB – fetch, save, return preview
   const response = await getRecipeInformation(recipe_id);
   const data = response.data;
   await saveExternalRecipeToDB(data);
@@ -128,12 +123,14 @@ async function getRecipesPreview(recipeIds) {
 
   return previews;
 }
-//   const localRecipesFormatted = localRecipes.map(recipe => ({
-//     ...recipe,
-//     vegetarian: recipe.vegetarian ? "true" : "false",
-//     vegan: recipe.vegan ? "true" : "false",
-//     glutenFree: recipe.glutenFree ? "true" : "false"
-//   }));
+/**
+  const localRecipesFormatted = localRecipes.map(recipe => ({
+    ...recipe,
+    vegetarian: recipe.vegetarian ? "true" : "false",
+    vegan: recipe.vegan ? "true" : "false",
+    glutenFree: recipe.glutenFree ? "true" : "false"
+  }));
+*/
 
 
 /**
@@ -177,10 +174,8 @@ async function getRandomRecipes(count) {
  */
 async function likeRecipe(recipe_id) {
   // Check if the recipe exists locally
-  const result = await DButils.execQuery(`SELECT * FROM recipes WHERE recipe_id = ${recipe_id}`);
-
-  if (result.length === 0) {
-    // Fetch from API and save to DB
+  const exists = await recipeExistsInDB(recipe_id);
+  if (!exists) {
     const response = await getRecipeInformation(recipe_id);
     await saveExternalRecipeToDB(response.data);
   }
@@ -193,41 +188,6 @@ async function likeRecipe(recipe_id) {
 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * Save a recipe object from Spoonacular into the local DB.
- * Used after fetching from the API.
- */
-async function saveExternalRecipeToDB(data) {
-  const insertRecipeQuery = `INSERT INTO recipes (
-      recipe_id, title, image_url, ready_in_minutes,
-      vegetarian, vegan, gluten_free, likes, instructions, servings, user_id) VALUES (
-      ${data.id}, '${data.title.replace(/'/g, "''")}', '${data.image}',
-      ${data.readyInMinutes || 0}, ${data.vegetarian ? 1 : 0}, ${data.vegan ? 1 : 0}, ${data.glutenFree ? 1 : 0},
-      ${data.aggregateLikes || 0}, '${(data.instructions || '').replace(/'/g, "''")}', ${data.servings || 1}, NULL
-    );
-  `;
-  await DButils.execQuery(insertRecipeQuery);
-
-  const ingredients = data.extendedIngredients || [];
-  for (const ing of ingredients) {
-    await DButils.execQuery(`INSERT INTO ingredients (recipe_id, name, quantity, unit)
-      VALUES (${data.id}, '${ing.name.replace(/'/g, "''")}', '${ing.amount}', '${ing.unit}')`);
-  }
-}
 
 /**
  * Searches recipes on Spoonacular using a search query and optional filters.
@@ -256,8 +216,63 @@ async function searchRecipes({ query, limit = 5, cuisine, diet, intolerances }) 
   }
 }
 
+////// helper functions //////////
+
+/**
+ * Saves a recipe from Spoonacular API to the local DB only if it doesn't already exist.
+ * Includes ingredients and main recipe info.
+ * @param {object} data - Recipe object from Spoonacular
+ */
+async function saveExternalRecipeToDB(data) {
+  try {
+    const exists = await recipeExistsInDB(data.id);
+    if (exists) {
+      return; // Recipe already exists, no need to insert again
+    }
+
+    await DButils.execQuery(`
+      INSERT INTO recipes (
+        recipe_id, title, image_url, ready_in_minutes,
+        vegetarian, vegan, gluten_free, likes, instructions, servings, user_id
+      ) VALUES (
+        ${data.id}, '${data.title.replace(/'/g, "''")}', '${data.image}',
+        ${data.readyInMinutes || 0}, ${data.vegetarian ? 1 : 0}, ${data.vegan ? 1 : 0}, ${data.glutenFree ? 1 : 0},
+        ${data.aggregateLikes || 0}, '${(data.instructions || '').replace(/'/g, "''")}', ${data.servings || 1}, NULL
+      );
+    `);
+
+    const ingredients = data.extendedIngredients || [];
+    for (const ing of ingredients) {
+      await DButils.execQuery(`
+        INSERT INTO ingredients (recipe_id, name, quantity, unit)
+        VALUES (
+          ${data.id},
+          '${ing.name.replace(/'/g, "''")}',
+          '${ing.amount}',
+          '${ing.unit}'
+        )
+      `);
+    }
+
+    console.log(`Recipe ${data.id} saved to DB`);
+  } catch (error) {
+    console.error(`Failed to save recipe ${data.id} to DB:`, error.message);
+    throw error;
+  }
+}
 
 
+/**
+ * Checks whether a recipe with the given ID exists in the DB.
+ * @param {number} recipe_id 
+ * @returns {Promise<boolean>}
+ */
+async function recipeExistsInDB(recipe_id) {
+  const result = await DButils.execQuery(`
+    SELECT 1 FROM recipes WHERE recipe_id = ${recipe_id} LIMIT 1
+  `);
+  return result.length > 0;
+}
 
 
 
@@ -268,8 +283,5 @@ exports.getRecipePreview = getRecipePreview;
 exports.saveExternalRecipeToDB = saveExternalRecipeToDB;
 exports.likeRecipe = likeRecipe;
 exports.searchRecipes = searchRecipes;
-
-
-
-
+exports.recipeExistsInDB = recipeExistsInDB;
 
