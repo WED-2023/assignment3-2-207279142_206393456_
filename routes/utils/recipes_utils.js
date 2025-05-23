@@ -3,7 +3,6 @@ const DButils = require("./DButils");
 const api_domain = "https://api.spoonacular.com/recipes";
 const api_key = process.env.spoonacular_apiKey;
 
-
 /**
  * Fetch full recipe information from Spoonacular by ID.
  * Does not include nutrition data to reduce payload size.
@@ -199,7 +198,7 @@ async function searchRecipes({ query, limit = 5, cuisine, diet, intolerances }) 
       params: {
         query,
         number: limit,
-        apiKey: process.env.spoonacular_apiKey,
+        apiKey: process.env.spooncular_apiKey,
         cuisine,
         diet,
         intolerances
@@ -275,7 +274,7 @@ async function recipeExistsInDB(recipe_id) {
 }
 
 
-
+exports.getRecipeInformation = getRecipeInformation;
 exports.getRandomRecipes = getRandomRecipes;
 exports.getRecipeDetails = getRecipeDetails;
 exports.getRecipesPreview = getRecipesPreview;
