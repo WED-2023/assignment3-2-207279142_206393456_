@@ -63,23 +63,29 @@ router.get('/favorites', async (req,res,next) => {
   }
 });
 
-
 /**
- * This path returns the viewed recipes that were saved by the logged-in user
+ * Marks a recipe as viewed by the current user.
+ * Stores the last 3 viewed recipes in the session (not in the database).
+ * If a recipe is viewed again, it moves to the front of the list.
  */
 router.post("/viewed", async (req, res, next) => {
   try {
-    const user_id = req.session.user_id;
     const recipe_id = req.body.recipeId;
 
     if (!recipe_id) {
       return res.status(400).json({ error: "Missing recipeId" });
     }
-    const apiData = (await recipe_utils.getRecipeInformation(recipe_id)).data;
-    await recipe_utils.saveExternalRecipeToDB(apiData);
 
-    // Mark this recipe as viewed by the user
-    await user_utils.markAsViewed(user_id, recipe_id);
+    // Initialize viewed recipes in session if not exists
+    if (!req.session.lastViewedRecipes) {
+      req.session.lastViewedRecipes = [];
+    }
+
+    // Add recipe to front, remove duplicates, and keep max 3
+    req.session.lastViewedRecipes = [
+      recipe_id,
+      ...req.session.lastViewedRecipes.filter(id => id !== recipe_id)
+    ].slice(0, 3);
 
     res.status(200).json({
       recipeId: recipe_id,
@@ -89,6 +95,25 @@ router.post("/viewed", async (req, res, next) => {
     next(error);
   }
 });
+
+/**
+ * Returns the last 3 recipes viewed by the user during the session.
+ * The data is stored in memory (session), not in the database.
+ */
+router.get("/lastWatched", async (req, res, next) => {
+  try {
+    const ids = req.session.lastViewedRecipes || [];
+
+    // Fetch recipe previews for those IDs
+    const result = await recipe_utils.getRecipesPreview(ids);
+
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+
 
 router.get("/lastSearches", async (req, res, next) => {
   try {
@@ -100,15 +125,7 @@ router.get("/lastSearches", async (req, res, next) => {
   }
 });
 
-router.get("/lastWatched", async (req, res, next) => {
-  try {
-    const user_id = req.session.user_id;
-    const result = await user_utils.getLastWatchedRecipes(user_id);
-    res.status(200).json(result);
-  } catch (error) {
-    next(error);
-  }
-});
+
 
 router.get("/myRecipes", async (req, res, next) => {
   try {
@@ -182,6 +199,44 @@ router.post("/recipes", async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+
+/**
+ * Returns basic info about the currently logged-in user.
+ * Used by the frontend to display "Hello Guest" or "Hello <username>".
+ */
+router.get("/me", async (req, res, next) => {
+  try {
+    if (!req.session.user_id) {
+      // User is not logged in
+      return res.status(200).json({ isLoggedIn: false });
+    }
+
+    const result = await DButils.execQuery(`
+      SELECT username FROM users WHERE user_id = '${req.session.user_id}'
+    `);
+
+    res.status(200).json({
+      isLoggedIn: true,
+      username: result[0].username
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
+/**
+ * Returns the last search query stored in the session.
+ * Returns null if not logged in or no search was made.
+ */
+router.get("/lastSearchQuery", (req, res) => {
+  if (!req.session.user_id || !req.session.lastSearchQuery) {
+    return res.status(200).json({ lastSearch: null });
+  }
+
+  res.status(200).json({ lastSearch: req.session.lastSearchQuery });
 });
 
 module.exports = router;

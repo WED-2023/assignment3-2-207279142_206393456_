@@ -22,8 +22,11 @@ router.get("/", async (req, res, next) => {
     const results = await recipes_utils.searchRecipes(searchParams);
 
     if (req.session?.user_id) {
-      await user_utils.saveSearchQuery(req.session.user_id, query);
+      req.session.lastSearchQuery = query;
     }
+    
+
+
 
     res.send(results);
   } catch (error) {

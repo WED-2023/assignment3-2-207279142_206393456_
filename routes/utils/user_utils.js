@@ -90,12 +90,7 @@ async function getFamilyRecipes(user_id) {
 }
     
 
-async function saveSearchQuery(user_id, query) {
-  await DButils.execQuery(`
-    INSERT INTO search_history (user_id, query)
-    VALUES ('${user_id}', '${query.replace(/'/g, "''")}')
-  `);
-}
+
     
 /**
  * Creates a new user recipe (regular or family) and saves to the DB.
@@ -163,7 +158,6 @@ exports.getLastSearches = getLastSearches;
 exports.getLastWatchedRecipes = getLastWatchedRecipes;
 exports.getMyRecipes = getMyRecipes;
 exports.getFamilyRecipes = getFamilyRecipes;
-exports.saveSearchQuery = saveSearchQuery;
 exports.createUserRecipe = createUserRecipe;
 
 

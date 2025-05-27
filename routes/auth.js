@@ -3,7 +3,6 @@ var router = express.Router();
 const MySql = require("../routes/utils/MySql");
 const DButils = require("../routes/utils/DButils");
 const bcrypt = require("bcrypt");
-
 router.post("/Register", async (req, res, next) => {
   try {
     // parameters exists
@@ -40,35 +39,43 @@ router.post("/Register", async (req, res, next) => {
   }
 });
 
+/**
+ * Logs in a user and sets a session cookie.
+ * Returns the username in the response if login succeeds.
+ */
 router.post("/Login", async (req, res, next) => {
   try {
-    // check that username exists
+    // Check that username exists
     const users = await DButils.execQuery("SELECT username FROM users");
     if (!users.find((x) => x.username === req.body.username))
       throw { status: 401, message: "Username or Password incorrect" };
 
-    // check that the password is correct
+    // Get user details
     const user = (
       await DButils.execQuery(
         `SELECT * FROM users WHERE username = '${req.body.username}'`
       )
     )[0];
 
+    // Check that the password is correct
     if (!bcrypt.compareSync(req.body.password, user.password)) {
       throw { status: 401, message: "Username or Password incorrect" };
     }
 
-    // Set cookie
+    // Set session cookie
     req.session.user_id = user.user_id;
     console.log("session user_id login: " + req.session.user_id);
 
-    // return cookie
-    res.status(200).send({ message: "login succeeded " , success: true });
+    // Return success + username
+    res.status(200).send({
+      message: "login succeeded",
+      success: true,
+      username: user.username
+    });
   } catch (error) {
     next(error);
   }
 });
-
 router.post("/Logout", function (req, res) {
   console.log("session user_id Logout: " + req.session.user_id);
   req.session.reset(); // reset the session info --> send cookie when  req.session == undefined!!
