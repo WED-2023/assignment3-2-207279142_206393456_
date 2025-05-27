@@ -1,4 +1,4 @@
-=== Grandma Recipes Project – Assignment 3.2 ===
+Grandma Recipes Project – Assignment 3.2 
 
 Project: Fullstack web system for managing and sharing recipes  
 
