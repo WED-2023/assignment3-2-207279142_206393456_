@@ -65,27 +65,22 @@ router.get('/favorites', async (req,res,next) => {
 
 /**
  * Marks a recipe as viewed by the current user.
- * Stores the last 3 viewed recipes in the session (not in the database).
- * If a recipe is viewed again, it moves to the front of the list.
+ * Saves it to the database instead of the session.
  */
 router.post("/viewed", async (req, res, next) => {
   try {
+    const user_id = req.session.user_id;
     const recipe_id = req.body.recipeId;
 
     if (!recipe_id) {
       return res.status(400).json({ error: "Missing recipeId" });
     }
 
-    // Initialize viewed recipes in session if not exists
-    if (!req.session.lastViewedRecipes) {
-      req.session.lastViewedRecipes = [];
-    }
+    const apiData = (await recipe_utils.getRecipeInformation(recipe_id)).data;
+    await recipe_utils.saveExternalRecipeToDB(apiData);
 
-    // Add recipe to front, remove duplicates, and keep max 3
-    req.session.lastViewedRecipes = [
-      recipe_id,
-      ...req.session.lastViewedRecipes.filter(id => id !== recipe_id)
-    ].slice(0, 3);
+    // Save to DB instead of session
+    await user_utils.markAsViewed(user_id, recipe_id);
 
     res.status(200).json({
       recipeId: recipe_id,
@@ -96,17 +91,17 @@ router.post("/viewed", async (req, res, next) => {
   }
 });
 
+
 /**
  * Returns the last 3 recipes viewed by the user during the session.
  * The data is stored in memory (session), not in the database.
  */
 router.get("/lastWatched", async (req, res, next) => {
   try {
-    const ids = req.session.lastViewedRecipes || [];
 
     // Fetch recipe previews for those IDs
-    const result = await recipe_utils.getRecipesPreview(ids);
-
+    const user_id = req.session.user_id;
+    const result = await user_utils.getLastWatchedRecipes(user_id);
     res.status(200).json(result);
   } catch (error) {
     next(error);
