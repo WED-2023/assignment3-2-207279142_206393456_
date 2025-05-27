@@ -1,0 +1,24 @@
+API Implementation Differences – Compared to API Specification (Assignment 3.1)
+
+1. /login
+   -The implementation returns `username` in the response JSON.
+
+2. /recipes (GET)
+   - The route accepts a `limit` query parameter (default: 5) to return 5/10/15 recipes.
+   - If the user is logged in, the last search query is stored in session memory (`req.session.lastSearchQuery`) instead of being saved to the database.
+
+3. /users/lastSearchQuery (GET)
+   - This route was added in implementation but is not in the OpenAPI spec.
+
+4. /users/viewed (POST) and /users/lastWatched (GET)
+   - These routes handle recipe view tracking using a `viewed_recipes` table, they are not documented in the API spec but are implemented in code.
+   - The last 3 viewed recipes are returned (not session-based).
+
+5. /users/me (GET)
+   - This route was added in the implementation to expose the currently logged-in user's username and login status.
+
+6. /users/recipes (POST)
+   - The implementation supports both regular and family recipes using the same route with additional fields.
+
+7. /recipes/{id}/like (PUT)
+   - This route allows increasing a recipe's popularity (likes) and saving it in the DB if needed.
