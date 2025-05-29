@@ -1,14 +1,12 @@
-=== Grandma Recipes Project – Assignment 3.2 ===
+Grandma Recipes Project – Assignment 3.2 
 
 Project: Fullstack web system for managing and sharing recipes  
 
 Submitters:
 
-- Name: Ron Shukrun
-  ID: 207279142
+- Name: Ron Shukrun | ID: 207279142
 
-- Name: Maor Nezer   
-  ID: 206393456
+- Name: Maor Nezer  | ID: 206393456
 
 
 Technologies:
