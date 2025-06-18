@@ -8,7 +8,7 @@ const DButils = require("./routes/utils/DButils");
 var cors = require('cors');
 
 const corsConfig = {
-  origin: "http://localhost:8080", // או 5173 אם את מריצה שם
+  origin: "http://localhost:8080",
   credentials: true
 };
 var app = express();
