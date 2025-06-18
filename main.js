@@ -5,10 +5,16 @@ var path = require("path");
 var logger = require("morgan");
 const session = require("client-sessions");
 const DButils = require("./routes/utils/DButils");
-var cors = require('cors')
+var cors = require('cors');
 
+const corsConfig = {
+  origin: "http://localhost:8080", // או 5173 אם את מריצה שם
+  credentials: true
+};
 var app = express();
 app.use(logger("dev")); //logger
+app.use(cors(corsConfig));
+app.options("*", cors(corsConfig));
 app.use(express.json()); // parse application/json
 app.use(
   session({
@@ -39,7 +45,8 @@ app.get("/",function(req,res)
 
 });
 
-// app.use(cors());
+
+//app.use(cors());
 // app.options("*", cors());
 
 // const corsConfig = {
