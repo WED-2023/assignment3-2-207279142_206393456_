@@ -33,8 +33,14 @@ router.post('/favorites', async (req, res, next) => {
       return res.status(400).json({ error: "Missing recipeId" });
     }
     
-    const apiData = (await recipe_utils.getRecipeInformation(recipe_id)).data;
-    await recipe_utils.saveExternalRecipeToDB(apiData);
+    // const apiData = (await recipe_utils.getRecipeInformation(recipe_id)).data;
+    // await recipe_utils.saveExternalRecipeToDB(apiData);
+    const exists = await recipe_utils.recipeExistsInDB(recipe_id);
+    if (!exists) {
+      const apiData = (await recipe_utils.getRecipeInformation(recipe_id)).data;
+      await recipe_utils.saveExternalRecipeToDB(apiData);
+    }
+
     // Add to user's favorite recipes
     await user_utils.markAsFavorite(user_id, recipe_id);
     

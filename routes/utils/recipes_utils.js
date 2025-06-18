@@ -93,7 +93,7 @@ async function getRecipePreview(recipe_id) {
   await saveExternalRecipeToDB(data);
 
   return {
-    id: data.id,
+    id: recipe.recipe_id,
     title: data.title,
     image: data.image,
     readyInMinutes: data.readyInMinutes,
