@@ -1,7 +1,7 @@
 const axios = require("axios");
 const DButils = require("./DButils");
 const api_domain = "https://api.spoonacular.com/recipes";
-const api_key = process.env.spoonacular_apiKey;
+const api_key = process.env.spooncular_apiKey;
 
 /**
  * Fetch full recipe information from Spoonacular by ID.
@@ -9,7 +9,7 @@ const api_key = process.env.spoonacular_apiKey;
  */
 async function getRecipeInformation(recipe_id) {
     return await axios.get(`${api_domain}/${recipe_id}/information`, {
-        params: {includeNutrition: false,apiKey: process.env.spooncular_apiKey}
+        params: {includeNutrition: false,apiKey: api_key}
     });
 }
 
@@ -141,7 +141,7 @@ async function getRandomRecipes(count) {
   try {
     
     const response = await axios.get(`${api_domain}/random`, {
-      params: {number: count,apiKey: process.env.spooncular_apiKey}
+      params: {number: count,apiKey: api_key}
     });
 
     const recipes = response.data.recipes;
@@ -198,7 +198,7 @@ async function searchRecipes({ query, limit = 5, cuisine, diet, intolerances }) 
       params: {
         query,
         number: limit,
-        apiKey: process.env.spooncular_apiKey,
+        apiKey: api_key,
         cuisine,
         diet,
         intolerances
