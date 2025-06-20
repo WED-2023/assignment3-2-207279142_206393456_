@@ -24,6 +24,16 @@ async function getRecipeDetails(recipe_id) {
 
   if (exists) {
     const recipe = (await DButils.execQuery(`SELECT * FROM recipes WHERE recipe_id = ${recipe_id}`))[0];
+    //check if the recipe is family recipe
+    const familyInfoQuery = `
+      SELECT family_owner, event 
+      FROM family_recipes 
+      WHERE recipe_id = ${recipe_id}
+    `;
+    const familyInfo = await DButils.execQuery(familyInfoQuery);
+    const family_owner = familyInfo[0]?.family_owner || null;
+    const family_event = familyInfo[0]?.event || null;
+
     const ingredients = await DButils.execQuery(`SELECT name, quantity, unit FROM ingredients WHERE recipe_id = ${recipe_id}`);
 
     return {
@@ -40,7 +50,9 @@ async function getRecipeDetails(recipe_id) {
       ingredients: ingredients.map(i => ({
         name: i.name,
         quantity: `${i.quantity} ${i.unit}`.trim()
-      }))
+      })),
+      family_owner,
+      family_event 
     };
   }
 
