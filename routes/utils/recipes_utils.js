@@ -46,7 +46,9 @@ async function getRecipeDetails(recipe_id) {
       vegetarian: !!recipe.vegetarian,
       glutenFree: !!recipe.gluten_free,
       servings: recipe.servings,
-      instructions: recipe.instructions?.split(".").filter(s => s.trim()),
+      //instructions: recipe.instructions?.split(".").filter(s => s.trim()),
+      instructions: recipe.instructions,
+
       ingredients: ingredients.map(i => ({
         name: i.name,
         quantity: `${i.quantity} ${i.unit}`.trim()
@@ -70,7 +72,8 @@ async function getRecipeDetails(recipe_id) {
     vegetarian: data.vegetarian,
     glutenFree: data.glutenFree,
     servings: data.servings,
-    instructions: data.instructions?.split(".").filter(s => s.trim()),
+    //instructions: data.instructions?.split(".").filter(s => s.trim())
+    instructions: data.instructions,
     ingredients: (data.extendedIngredients || []).map(i => ({
       name: i.name,
       quantity: `${i.amount} ${i.unit}`.trim()
