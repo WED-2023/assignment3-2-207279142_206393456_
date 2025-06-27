@@ -66,29 +66,61 @@ async function getMyRecipes(user_id) {
   const previews = await recipe_utils.getRecipesPreview(ids);
   return previews;
 }
+// async function getFamilyRecipes(user_id) {
+//   const rows = await DButils.execQuery(`
+//     SELECT recipe_id, family_owner, event
+//     FROM family_recipes
+//     WHERE user_id = '${user_id}'
+//   `);
+
+//   const recipe_ids = rows.map(r => r.recipe_id);
+//   const previews = await recipe_utils.getRecipesPreview(recipe_ids);
+
+//   // add family info to each recipe
+//   const previewWithFamily = previews.map(preview => {
+//     const extra = rows.find(r => r.recipe_id === preview.id);
+//     return {
+//       ...preview,
+//       family_owner: extra.family_owner,
+//       family_event: extra.event
+//     };
+//   });
+
+//   return previewWithFamily;
+// }
+
 async function getFamilyRecipes(user_id) {
-  const rows = await DButils.execQuery(`
-    SELECT recipe_id, family_owner, event
-    FROM family_recipes
-    WHERE user_id = '${user_id}'
+  const recipes = await DButils.execQuery(`
+    SELECT 
+      R.recipe_id, 
+      R.title, 
+      R.image_url AS image, 
+      R.ready_in_minutes, 
+      R.likes AS popularity, 
+      R.vegetarian, 
+      R.vegan, 
+      R.gluten_free, 
+      R.instructions,
+      F.family_owner, 
+      F.event AS family_event
+    FROM recipes R
+    JOIN family_recipes F ON R.recipe_id = F.recipe_id
+    WHERE R.user_id = ${user_id}
   `);
 
-  const recipe_ids = rows.map(r => r.recipe_id);
-  const previews = await recipe_utils.getRecipesPreview(recipe_ids);
+  for (let recipe of recipes) {
+    const ingredients = await DButils.execQuery(`
+      SELECT name, quantity, unit
+      FROM ingredients
+      WHERE recipe_id = ${recipe.recipe_id}
+    `);
+    recipe.ingredients = ingredients.map(i => `${i.name} - ${i.quantity} ${i.unit}`.trim());
 
-  // add family info to each recipe
-  const previewWithFamily = previews.map(preview => {
-    const extra = rows.find(r => r.recipe_id === preview.id);
-    return {
-      ...preview,
-      family_owner: extra.family_owner,
-      family_event: extra.event
-    };
-  });
-
-  return previewWithFamily;
-}
-    
+    recipe.instructions = recipe.instructions?.split('\n') ?? [];
+  }
+    return recipes;
+  }
+  
 
 
     
