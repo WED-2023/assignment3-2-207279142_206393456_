@@ -1,3 +1,4 @@
+require("dotenv").config();
 var path = require("path");
 var app = require('./main');
 var https = require('https');
@@ -74,7 +75,7 @@ function onError(error) {
 /**
  * Event listener for HTTP server "listening" event.
  */
-server.address("https://liel-bin.cs.bgu.ac.il");
+server.address("https://GrandmaRecipes.cs.bgu.ac.il");
 function onListening() {
   var addr = server.address();
   var bind = typeof addr === 'string'

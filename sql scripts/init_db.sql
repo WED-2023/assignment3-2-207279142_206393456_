@@ -1,15 +1,14 @@
-
-use grandma_recipes;-- Drop if exists for safety during dev
+USE mydb;-- Drop if exists for safety during dev
 DROP TABLE IF EXISTS search_history, family_recipes, viewed_recipes, favorites, ingredients, recipes, users;
 
 
 -- Create users table
 CREATE TABLE users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    firstname VARCHAR(50) NOT NULL,
-    lastname VARCHAR(50) NOT NULL,
-    country VARCHAR(50),
+    username VARCHAR(255) UNIQUE NOT NULL,
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    country VARCHAR(255),
     password VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL,
     profilePic TEXT
@@ -95,26 +94,26 @@ INSERT INTO recipes (title, image_url, ready_in_minutes, vegetarian, vegan, glut
 
 -- Insert ingredients
 INSERT INTO ingredients (recipe_id, name, quantity, unit) VALUES
-(1, 'Pasta', '200', 'grams'),
-(1, 'Tomato Sauce', '150', 'ml'),
-(2, 'Beef', '300', 'grams'),
-(2, 'Bun', '1', 'unit'),
-(2, 'Lettuce', '50', 'grams');
+(10000000, 'Pasta', '200', 'grams'),
+(10000000, 'Tomato Sauce', '150', 'ml'),
+(10000001, 'Beef', '300', 'grams'),
+(10000001, 'Bun', '1', 'unit'),
+(10000001, 'Lettuce', '50', 'grams');
 
 -- Insert favorites
 INSERT INTO favorites (user_id, recipe_id) VALUES
-(1, 2),
-(2, 1);
+(1, 10000001),
+(2, 10000000);
 
 -- Insert viewed_recipes
 INSERT INTO viewed_recipes (user_id, recipe_id) VALUES
-(1, 1),
-(1, 2),
-(2, 1);
+(1, 10000000),
+(1, 10000001),
+(2, 10000000);
 
 -- Insert family_recipes
 INSERT INTO family_recipes (user_id, recipe_id, family_owner, event) VALUES
-(1, 1, 'Grandma Rachel', 'Passover');
+(1, 10000000, 'Grandma Rachel', 'Passover');
 
 -- Insert search_history
 INSERT INTO search_history (user_id, query) VALUES

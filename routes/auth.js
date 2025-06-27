@@ -11,8 +11,8 @@ router.post("/Register", async (req, res, next) => {
     // username exists
     let user_details = {
       username: req.body.username,
-      firstname: req.body.firstname,
-      lastname: req.body.lastname,
+      first_name: req.body.first_name,
+      last_name: req.body.last_name,
       country: req.body.country,
       password: req.body.password,
       email: req.body.email,
@@ -31,7 +31,7 @@ router.post("/Register", async (req, res, next) => {
     );
 
     await DButils.execQuery(
-      `INSERT INTO users (username, firstname, lastname, country, password, email, profilePic) VALUES ('${user_details.username}', '${user_details.firstname}', '${user_details.lastname}',
+      `INSERT INTO users (username, first_name, last_name, country, password, email, profilePic) VALUES ('${user_details.username}', '${user_details.first_name}', '${user_details.last_name}',
       '${user_details.country}', '${hash_password}', '${user_details.email}', '${user_details.profilePic}')`
     );
     res.status(201).send({ message: "user created", success: true });
