@@ -94,7 +94,9 @@ app.use("/", auth);
 
 
 
-
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../assignment3-3-207279142_206393456_assignment2/dist/index.html'));
+});
 
 
 // Default router
