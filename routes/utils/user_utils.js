@@ -116,7 +116,7 @@ async function getFamilyRecipes(user_id) {
     `);
     recipe.ingredients = ingredients.map(i => `${i.name} - ${i.quantity} ${i.unit}`.trim());
 
-    recipe.instructions = recipe.instructions?.split('\n') ?? [];
+    // recipe.instructions = recipe.instructions?.split('\n') ?? [];
   }
     return recipes;
   }
