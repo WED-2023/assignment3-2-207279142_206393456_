@@ -98,6 +98,20 @@ router.post("/viewed", async (req, res, next) => {
     next(error);
   }
 });
+router.get("/viewedIds", async (req, res, next) => {
+  try {
+    const user_id = req.session.user_id;
+    const rows = await DButils.execQuery(`
+      SELECT recipe_id
+      FROM viewed_recipes
+      WHERE user_id = '${user_id}'
+    `);
+    const ids = rows.map(r => r.recipe_id);
+    res.status(200).json(ids);
+  } catch (error) {
+    next(error);
+  }
+});
 
 
 /**
