@@ -115,6 +115,7 @@ async function getFamilyRecipes(user_id) {
       WHERE recipe_id = ${recipe.recipe_id}
     `);
     recipe.ingredients = ingredients.map(i => `${i.name} - ${i.quantity} ${i.unit}`.trim());
+    recipe.readyInMinutes = recipe.ready_in_minutes ?? 0;
 
     // recipe.instructions = recipe.instructions?.split('\n') ?? [];
   }
