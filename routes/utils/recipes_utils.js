@@ -137,14 +137,6 @@ async function getRecipesPreview(recipeIds) {
 
   return previews;
 }
-/**
-  const localRecipesFormatted = localRecipes.map(recipe => ({
-    ...recipe,
-    vegetarian: recipe.vegetarian ? "true" : "false",
-    vegan: recipe.vegan ? "true" : "false",
-    glutenFree: recipe.glutenFree ? "true" : "false"
-  }));
-*/
 
 
 /**

@@ -66,28 +66,6 @@ async function getMyRecipes(user_id) {
   const previews = await recipe_utils.getRecipesPreview(ids);
   return previews;
 }
-// async function getFamilyRecipes(user_id) {
-//   const rows = await DButils.execQuery(`
-//     SELECT recipe_id, family_owner, event
-//     FROM family_recipes
-//     WHERE user_id = '${user_id}'
-//   `);
-
-//   const recipe_ids = rows.map(r => r.recipe_id);
-//   const previews = await recipe_utils.getRecipesPreview(recipe_ids);
-
-//   // add family info to each recipe
-//   const previewWithFamily = previews.map(preview => {
-//     const extra = rows.find(r => r.recipe_id === preview.id);
-//     return {
-//       ...preview,
-//       family_owner: extra.family_owner,
-//       family_event: extra.event
-//     };
-//   });
-
-//   return previewWithFamily;
-// }
 
 async function getFamilyRecipes(user_id) {
   const recipes = await DButils.execQuery(`
